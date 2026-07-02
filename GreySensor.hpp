@@ -1,0 +1,107 @@
+#pragma once
+
+// clang-format off
+/* === MODULE MANIFEST V2 ===
+module_description: Runtime-configurable digital grey sensor module with weighted line position and line-loss memory
+constructor_args:
+  - channel_names:
+      - "grey_sensor_gpio_0"
+      - "grey_sensor_gpio_1"
+      - "grey_sensor_gpio_2"
+      - "grey_sensor_gpio_3"
+      - "grey_sensor_gpio_4"
+      - "grey_sensor_gpio_5"
+      - "grey_sensor_gpio_6"
+      - "grey_sensor_gpio_7"
+  - active_low: false
+  - topic_name: "grey_sensor"
+  - publish_period_ms: 10
+template_args: []
+required_hardware:
+  - grey_sensor_gpio_0
+  - grey_sensor_gpio_1
+  - grey_sensor_gpio_2
+  - grey_sensor_gpio_3
+  - grey_sensor_gpio_4
+  - grey_sensor_gpio_5
+  - grey_sensor_gpio_6
+  - grey_sensor_gpio_7
+depends: []
+=== END MANIFEST === */
+// clang-format on
+
+#include "app_framework.hpp"
+#include "gpio.hpp"
+#include "message.hpp"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <initializer_list>
+
+class GreySensor : public LibXR::Application
+{
+ public:
+  static constexpr size_t MAX_CHANNEL_COUNT = 8;
+  static constexpr int16_t POSITION_SCALE = 1000;
+  static constexpr uint8_t LOST_SIDE_UNKNOWN = 0;
+  static constexpr uint8_t LOST_SIDE_LEFT = 1;
+  static constexpr uint8_t LOST_SIDE_RIGHT = 2;
+
+  struct Sample
+  {
+    uint8_t raw_mask = 0;
+    uint8_t active_mask = 0;
+    uint8_t changed_mask = 0;
+    uint8_t channel_count = 0;
+    uint8_t active_count = 0;
+    uint8_t line_detected = 0;
+    uint8_t line_lost = 0;
+    uint8_t lost_side = LOST_SIDE_UNKNOWN;
+    int16_t weighted_position = 0;
+    int16_t position = 0;
+    int16_t remembered_position = 0;
+    uint32_t lost_count = 0;
+    uint32_t sequence = 0;
+    std::array<uint8_t, MAX_CHANNEL_COUNT> raw = {};
+    std::array<uint8_t, MAX_CHANNEL_COUNT> active = {};
+  };
+
+  GreySensor(LibXR::HardwareContainer& hw, LibXR::ApplicationManager& app,
+             std::initializer_list<const char*> channel_names,
+             bool active_low = false, const char* topic_name = "grey_sensor",
+             uint32_t publish_period_ms = 10);
+
+  Sample Read();
+
+  uint8_t ReadRawMask() const;
+
+  uint8_t ReadActiveMask() const;
+
+  int16_t ReadPosition();
+
+  size_t ChannelCount() const;
+
+  void OnMonitor() override;
+
+ private:
+  static uint8_t BuildBit(size_t channel);
+  static int16_t BuildPosition(size_t channel, size_t channel_count);
+  static uint8_t GetLostSide(int16_t position);
+
+  Sample ReadDigital() const;
+  void UpdatePositionState(Sample& sample);
+
+  std::array<LibXR::GPIO*, MAX_CHANNEL_COUNT> channels_ = {};
+  size_t channel_count_ = 0;
+  LibXR::Topic topic_;
+  bool active_low_ = false;
+  uint32_t publish_period_ms_ = 10;
+  uint32_t last_publish_ms_ = 0;
+  uint32_t sequence_ = 0;
+  uint8_t last_active_mask_ = 0;
+  int16_t remembered_position_ = 0;
+  uint32_t lost_count_ = 0;
+  bool has_position_memory_ = false;
+  bool has_published_ = false;
+};
