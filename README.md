@@ -6,7 +6,8 @@
 [![GitHub stars](https://img.shields.io/github/stars/verdancy-org/GreySensor?style=social)](https://github.com/verdancy-org/GreySensor/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/verdancy-org/GreySensor?style=social)](https://github.com/verdancy-org/GreySensor/network/members)
 [![GitHub issues](https://img.shields.io/github/issues/verdancy-org/GreySensor)](https://github.com/verdancy-org/GreySensor/issues)
-`r`n**English** | [中文](README_CN.md)`r`n
+
+**English** | [中文](README_CN.md)
 **GreySensor** is a runtime-configurable digital grey sensor module designed for
 line tracking and reflective optical sensor arrays.
 
@@ -94,4 +95,5 @@ and `2` for right.
 ## Dependencies
 
 - No dependencies except for the LibXR basic framework.
+
 
