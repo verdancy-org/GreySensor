@@ -8,6 +8,7 @@
 [![GitHub issues](https://img.shields.io/github/issues/verdancy-org/GreySensor)](https://github.com/verdancy-org/GreySensor/issues)
 
 **English** | [中文](README_CN.md)
+
 **GreySensor** is a runtime-configurable digital grey sensor module designed for
 line tracking and reflective optical sensor arrays.
 
