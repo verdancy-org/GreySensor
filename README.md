@@ -1,53 +1,96 @@
 # GreySensor
 
-Runtime-configurable digital grey sensor module for LibXR.
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![Language](https://img.shields.io/badge/language-C++20-orange.svg)](https://en.cppreference.com/)
+[![Framework](https://img.shields.io/badge/Framework-LibXR-green)](https://github.com/Jiu-xiao/libxr)
+[![GitHub stars](https://img.shields.io/github/stars/verdancy-org/GreySensor?style=social)](https://github.com/verdancy-org/GreySensor/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/verdancy-org/GreySensor?style=social)](https://github.com/verdancy-org/GreySensor/network/members)
+[![GitHub issues](https://img.shields.io/github/issues/verdancy-org/GreySensor)](https://github.com/verdancy-org/GreySensor/issues)
 
-The module reads GPIO channels in the order passed by `channel_names`, so the
-application or board layer owns the hardware alias mapping. For example,
-`grey_sensor_gpio_0` should be the leftmost channel and `grey_sensor_gpio_7`
-the rightmost channel for an 8-channel array.
+**GreySensor** is a runtime-configurable digital grey sensor module designed for
+line tracking and reflective optical sensor arrays.
 
-The channel count is inferred from the initializer list length. The current
-sample payload uses `uint8_t` masks, so supported channel count is 1-8.
+## Module Introduction
 
-## Topic
+GreySensor reads digital GPIO channels in the order provided by the application
+layer and publishes a compact line state through LibXR `Topic`. It keeps the
+driver independent from board-level pin names: the board or application registers
+GPIO hardware aliases, then passes those alias strings to the module constructor.
 
-Samples are published to the `grey_sensor` topic by default.
+The module calculates a weighted line position from active channels and keeps the
+last valid position when the line is temporarily lost, simplifying upper-level
+control loops that need stable direction feedback.
 
-- `raw_mask`: raw GPIO level bitmap
-- `active_mask`: active-detection bitmap after `active_low` conversion
-- `active_count`: number of active channels
-- `weighted_position`: weighted average line position
-- `position`: current position, or remembered position when line is lost
-- `line_lost`: set when no channel is active
-- `lost_side`: 0 unknown, 1 left, 2 right
-- `lost_count`: consecutive lost-line sample count
+## Features
 
-Position uses `POSITION_SCALE = 1000`, with the left side negative and the right
-side positive. For 8 channels, the channel positions are:
+- Based on `LibXR::GPIO` for hardware abstraction, decoupling the module from
+  platform-specific GPIO implementations.
+
+- Follows `Application` framework specifications, supporting dependency
+  injection and automated lifecycle management through MANIFEST.
+
+- Supports runtime channel count detection from the `channel_names` initializer
+  list. The current bitmap payload supports 1-8 channels.
+
+- Publishes raw channel state, active channel state, weighted position, line-loss
+  state, remembered position, and consecutive lost-line count.
+
+- Uses a signed fixed-point position scale where the left side is negative, the
+  right side is positive, and the center is zero.
+
+## Hardware Requirements
+
+- GPIO device nodes matching each string in the `channel_names` configuration
+  must be provided.
+
+## Constructor Parameters
+
+- `channel_names`
+  - GPIO alias list ordered from left to right. The list length determines the
+    active channel count.
+
+- `active_low`
+  - Whether low GPIO level means the corresponding channel detects the line.
+
+- `topic_name`
+  - Topic name used to publish `GreySensor::Sample`.
+
+- `publish_period_ms`
+  - Minimum publish interval in milliseconds. Set to `0` to publish on every
+    monitor cycle.
+
+### API Reference
+
+```cpp
+struct Sample {
+    uint8_t raw_mask;
+    uint8_t active_mask;
+    uint8_t changed_mask;
+    uint8_t channel_count;
+    uint8_t active_count;
+    uint8_t line_detected;
+    uint8_t line_lost;
+    uint8_t lost_side;
+    int16_t weighted_position;
+    int16_t position;
+    int16_t remembered_position;
+    uint32_t lost_count;
+    uint32_t sequence;
+    std::array<uint8_t, MAX_CHANNEL_COUNT> raw;
+    std::array<uint8_t, MAX_CHANNEL_COUNT> active;
+};
+```
+
+For an 8-channel array, the default position scale maps channels to:
 
 ```text
 -3500, -2500, -1500, -500, 500, 1500, 2500, 3500
 ```
 
-## Example
+When no channel is active, `line_lost` is set and `position` keeps the most
+recent valid `weighted_position`. `lost_side` is `0` for unknown, `1` for left,
+and `2` for right.
 
-```cpp
-static GreySensor grey_sensor(
-    hw, app,
-    {"grey_sensor_gpio_0", "grey_sensor_gpio_1", "grey_sensor_gpio_2",
-     "grey_sensor_gpio_3", "grey_sensor_gpio_4", "grey_sensor_gpio_5",
-     "grey_sensor_gpio_6", "grey_sensor_gpio_7"},
-    false, "grey_sensor", 10);
-```
+## Dependencies
 
-## MSPM0G3507 Binding Used By This Template
-
-- PB0 -> `grey_sensor_gpio_0`
-- PB1 -> `grey_sensor_gpio_1`
-- PB2 -> `grey_sensor_gpio_2`
-- PB3 -> `grey_sensor_gpio_3`
-- PB4 -> `grey_sensor_gpio_4`
-- PB5 -> `grey_sensor_gpio_5`
-- PB6 -> `grey_sensor_gpio_6`
-- PB7 -> `grey_sensor_gpio_7`
+- No dependencies except for the LibXR basic framework.
