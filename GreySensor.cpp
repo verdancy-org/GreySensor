@@ -35,8 +35,7 @@ GreySensor::GreySensor(LibXR::HardwareContainer& hw, LibXR::ApplicationManager& 
                        bool active_low, const char* topic_name,
                        uint32_t publish_period_ms)
     : channel_count_(channel_names.size()),
-      topic_(LibXR::Topic::CreateTopic<Sample>(topic_name, nullptr, false, true,
-                                               true)),
+      topic_(LibXR::Topic::CreateTopic<Sample>(topic_name)),
       active_low_(active_low),
       publish_period_ms_(publish_period_ms)
 {
@@ -159,3 +158,4 @@ void GreySensor::OnMonitor()
 
   topic_.Publish(sample);
 }
+
