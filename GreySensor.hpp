@@ -2,7 +2,7 @@
 
 // clang-format off
 /* === MODULE MANIFEST V2 ===
-module_description: Runtime-configurable digital grey sensor module with weighted line position and line-loss memory
+module_description: XRobot Module for digital grey sensors
 constructor_args:
   - channel_names:
       - "grey_sensor_gpio_0"
